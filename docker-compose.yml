@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ticketrush
+      POSTGRES_PASSWORD: ticketrush
+      POSTGRES_DB: ticketrush
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    command: redpanda start --mode dev-container --overprovisioned --smp 1
+    ports: ["19092:9092"]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports: ["8180:8080"]
+
+  observabilite:
+    image: grafana/otel-lgtm:0.8.1
+    ports: ["3000:3000", "4317:4317", "4318:4318"]
