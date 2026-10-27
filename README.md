@@ -9,7 +9,7 @@ docker compose up -d
 - Keycloak : http://localhost:8180 (admin / admin)
 
 ## Organisation
-- `docs/adr/` : décisions d'architecture (copier `0000-template.md`)
+- `docs/adr/` : décisions d'architecture 
 - `docs/c4/` : diagrammes C4 en Structurizr DSL
 - `docs/arc42/` : dossier d'architecture
 - `src/` : code
