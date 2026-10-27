@@ -2,11 +2,6 @@
 
 Projet d'architecture logicielle, ESGI M1, en trinôme.
 
-## Lancer
-docker compose up -d
-
-- Grafana : http://localhost:3000
-- Keycloak : http://localhost:8180 (admin / admin)
 
 ## Organisation
 - `docs/adr/` : décisions d'architecture 
