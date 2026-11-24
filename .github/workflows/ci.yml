@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check internal Markdown links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress 'docs/**/*.md' README.md
+          fail: true
+
+      - name: Validate C4 workspace
+        run: >
+          docker run --rm
+          -v "$PWD/docs/c4:/usr/local/structurizr"
+          structurizr/cli validate -workspace workspace.dsl
+
+  infra:
+    name: Infrastructure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+
+      - name: Start core services and wait for healthchecks
+        run: docker compose up -d --wait --wait-timeout 180 postgres redis redpanda
+
+      - name: Check Redpanda advertises localhost:19092 externally
+        run: |
+          docker compose exec -T redpanda rpk cluster info -X brokers=localhost:19092 \
+            | grep -E 'localhost +19092'
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
