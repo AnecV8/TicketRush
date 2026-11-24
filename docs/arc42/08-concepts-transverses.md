@@ -1,5 +1,50 @@
 # 8. Concepts transverses
 
+Règles communes à tous les services, quel que soit le module ou le langage.
+
 ## Observabilité
+
+Les services sont instrumentés avec OpenTelemetry et envoient traces, métriques et journaux en OTLP vers le conteneur `observabilite` ([ADR 0002](../adr/0002-stack-observabilite.md)).
+
+### Configuration
+
+Chaque service est configuré uniquement par les variables d'environnement standard d'OpenTelemetry, sans adresse écrite dans le code :
+
+| Variable                      | Valeur locale                                          | Rôle                                                                        |
+|-------------------------------|--------------------------------------------------------|-----------------------------------------------------------------------------|
+| `OTEL_SERVICE_NAME`           | Nom du module en kebab-case, par exemple `reservation` | Identifie le service dans Grafana                                           |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://observabilite:4317`                            | Adresse du collecteur (voir la [vue de déploiement](07-vue-deploiement.md)) |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`                                                 | Protocole d'envoi                                                           |
+| `OTEL_RESOURCE_ATTRIBUTES`    | `deployment.environment.name=local`                    | Distingue local, CI et test de charge                                       |
+| `OTEL_TRACES_SAMPLER`         | `parentbased_traceidratio`                             | Respecte la décision du service appelant                                    |
+| `OTEL_TRACES_SAMPLER_ARG`     | `1.0` en local, `0.1` pendant le test de charge        | Part des traces conservées                                                  |
+
+L'échantillonnage à 10 % pendant le test de charge évite de saturer le conteneur d'observabilité avec 50 000 acheteurs virtuels. Les métriques, elles, ne sont pas échantillonnées : les SLO restent exacts.
+
+### Traces
+
+- Le contexte de trace est propagé au format W3C Trace Context (en-tête `traceparent`).
+- Entre services HTTP, l'en-tête est transmis tel quel.
+- Dans Redpanda, `traceparent` est copié dans les en-têtes du message. Le consommateur reprend la trace là où le producteur l'a laissée : une réservation reste visible de bout en bout, même quand elle passe par le bus.
+- Un message écrit d'abord dans une table d'outbox garde son `traceparent` avec lui, pour que la trace ne soit pas coupée par le relais.
+
+### Métriques
+
+- Les métriques HTTP suivent les conventions sémantiques d'OpenTelemetry (par exemple `http.server.request.duration`) : le SDK les produit sans code supplémentaire.
+- Les métriques métier sont préfixées par `ticketrush.`, en minuscules, séparées par des points, par exemple `ticketrush.reservations.confirmed`. Dans Prometheus, les points deviennent des soulignés et les compteurs prennent le suffixe `_total` : `ticketrush_reservations_confirmed_total`.
+- Aucun identifiant d'utilisateur, de place ou de réservation n'est utilisé comme attribut de métrique : chaque valeur distincte crée une nouvelle série, et 50 000 acheteurs feraient tomber Prometheus. Ces identifiants vont dans les traces et les journaux.
+
+### Journaux
+
+- Les journaux sont structurés (une entrée = un objet avec des champs), envoyés en OTLP et écrits aussi sur la sortie standard pour `docker compose logs`.
+- Chaque entrée porte le `trace_id` et le `span_id` courants : depuis une trace dans Grafana, on retrouve ses journaux, et inversement.
+- Niveaux : `ERROR` quand une action échoue et demande une intervention, `WARN` quand le service se rétablit seul (nouvel essai, valeur par défaut), `INFO` pour les étapes métier, `DEBUG` désactivé par défaut.
+- Aucun secret, mot de passe, jeton ou donnée de paiement n'apparaît dans un journal, une trace ou un attribut.
+
+### Tableaux de bord
+
+Les tableaux de bord Grafana sont versionnés dans le dépôt et chargés au démarrage : ils survivent à la perte des données d'observabilité (dette D3 du [registre](11-risques-dette.md)).
+
 ## Sécurité
+
 ## Idempotence et gestion des erreurs
