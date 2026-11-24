@@ -2,6 +2,33 @@
 
 ## Arbre d'utilité
 
+```mermaid
+flowchart LR
+  U[Utilité]
+  U --> I[Intégrité]
+  U --> P[Performance]
+  U --> D[Disponibilité]
+  U --> S[Sécurité]
+  U --> O[Observabilité]
+  U --> M[Modifiabilité]
+  U --> DP[Déployabilité]
+
+  I --> I1[Cohérence des ventes] --> Q1["Q1 · Zéro survente (H,H)"]
+
+  P --> P1[Latence de réservation] --> Q2["Q2 · p95 < 1 s (H,H)"]
+  P --> P2[Absorption du pic] --> Q4["Q4 · File d'attente (H,M)"]
+  P --> P3[Fraîcheur de l'analytique] --> Q6["Q6 · Vente visible < 5 s (H,H)"]
+
+  D --> D1[Panne d'un prestataire] --> Q3["Q3 · Paiement en panne (H,H)"]
+  D --> D2[Panne d'une instance] --> Q7["Q7 · Reprise < 30 s (H,H)"]
+  D --> D3[Reprise après panne] --> Q9["Q9 · Rattrapage analytique (M,M)"]
+
+  S --> S1[Contrôle d'accès] --> Q5["Q5 · Requête sans jeton (H,M)"]
+  O --> O1[Diagnostic] --> Q8["Q8 · Cause < 1 min (H,M)"]
+  M --> M1[Ajout d'un consommateur] --> Q10["Q10 · Producteurs inchangés (M,M)"]
+  DP --> DP1[Lancement local] --> Q11["Q11 · Une commande (M,B)"]
+```
+
 ## Scénarios de qualité
 
 Priorité notée (Importance pour le métier, Difficulté technique), chacune Haute, Moyenne ou Basse. Les scénarios (H,H) guident l'architecture.
