@@ -23,7 +23,7 @@ services:
     ports: [ "19092:19092" ]
 
   keycloak:
-    image: quay.io/keycloak/keycloak:25.0
+    image: quay.io/keycloak/keycloak:26.0
     command: start-dev
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
