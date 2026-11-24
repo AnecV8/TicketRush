@@ -10,14 +10,14 @@ Les services sont instrumentés avec OpenTelemetry et envoient traces, métrique
 
 Chaque service est configuré uniquement par les variables d'environnement standard d'OpenTelemetry, sans adresse écrite dans le code :
 
-| Variable | Valeur locale | Rôle |
-|---|---|---|
-| `OTEL_SERVICE_NAME` | Nom du module en kebab-case, par exemple `reservation` | Identifie le service dans Grafana |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://observabilite:4317` | Adresse du collecteur (voir la [vue de déploiement](07-vue-deploiement.md)) |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | Protocole d'envoi |
-| `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment.name=local` | Distingue local, CI et test de charge |
-| `OTEL_TRACES_SAMPLER` | `parentbased_traceidratio` | Respecte la décision du service appelant |
-| `OTEL_TRACES_SAMPLER_ARG` | `1.0` en local, `0.1` pendant le test de charge | Part des traces conservées |
+| Variable                      | Valeur locale                                          | Rôle                                                                        |
+|-------------------------------|--------------------------------------------------------|-----------------------------------------------------------------------------|
+| `OTEL_SERVICE_NAME`           | Nom du module en kebab-case, par exemple `reservation` | Identifie le service dans Grafana                                           |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://observabilite:4317`                            | Adresse du collecteur (voir la [vue de déploiement](07-vue-deploiement.md)) |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`                                                 | Protocole d'envoi                                                           |
+| `OTEL_RESOURCE_ATTRIBUTES`    | `deployment.environment.name=local`                    | Distingue local, CI et test de charge                                       |
+| `OTEL_TRACES_SAMPLER`         | `parentbased_traceidratio`                             | Respecte la décision du service appelant                                    |
+| `OTEL_TRACES_SAMPLER_ARG`     | `1.0` en local, `0.1` pendant le test de charge        | Part des traces conservées                                                  |
 
 L'échantillonnage à 10 % pendant le test de charge évite de saturer le conteneur d'observabilité avec 50 000 acheteurs virtuels. Les métriques, elles, ne sont pas échantillonnées : les SLO restent exacts.
 
@@ -70,14 +70,14 @@ Tous les événements ont la même enveloppe JSON, inspirée de CloudEvents :
 }
 ```
 
-| Champ | Contenu |
-|---|---|
-| `id` | UUID unique de l'événement, utilisé pour éliminer les doublons |
-| `type` | Nom de l'événement |
-| `version` | Version du schéma de `data`, entier commençant à 1 |
-| `source` | Service émetteur, identique à `OTEL_SERVICE_NAME` |
-| `time` | Moment du fait métier, en UTC |
-| `data` | Contenu propre à l'événement |
+| Champ     | Contenu                                                        |
+|-----------|----------------------------------------------------------------|
+| `id`      | UUID unique de l'événement, utilisé pour éliminer les doublons |
+| `type`    | Nom de l'événement                                             |
+| `version` | Version du schéma de `data`, entier commençant à 1             |
+| `source`  | Service émetteur, identique à `OTEL_SERVICE_NAME`              |
+| `time`    | Moment du fait métier, en UTC                                  |
+| `data`    | Contenu propre à l'événement                                   |
 
 ### Évolution des schémas
 
