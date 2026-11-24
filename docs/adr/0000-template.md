@@ -1,7 +1,9 @@
 # ADR NNNN — Titre de la décision
 
 Statut : Proposé | Accepté | Remplacé par ADR XXXX
+
 Date : AAAA-MM-JJ
+
 Scénario(s) de qualité concerné(s) : QS-X
 
 ## Contexte
@@ -15,5 +17,5 @@ Ce qu'on fait, en une ou deux phrases.
 - Option 2 : pourquoi non.
 
 ## Conséquences
-+ Ce qu'on gagne.
-− Ce qu'on perd ou ce que ça impose.
+- **+** Ce qu'on gagne.
+- **−** Ce qu'on perd ou ce que ça impose.
