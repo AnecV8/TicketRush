@@ -10,14 +10,14 @@ Les services sont instrumentés avec OpenTelemetry et envoient traces, métrique
 
 Chaque service est configuré uniquement par les variables d'environnement standard d'OpenTelemetry, sans adresse écrite dans le code :
 
-| Variable                      | Valeur locale                                          | Rôle                                                                        |
-|-------------------------------|--------------------------------------------------------|-----------------------------------------------------------------------------|
-| `OTEL_SERVICE_NAME`           | Nom du module en kebab-case, par exemple `reservation` | Identifie le service dans Grafana                                           |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://observabilite:4317`                            | Adresse du collecteur (voir la [vue de déploiement](07-vue-deploiement.md)) |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`                                                 | Protocole d'envoi                                                           |
-| `OTEL_RESOURCE_ATTRIBUTES`    | `deployment.environment.name=local`                    | Distingue local, CI et test de charge                                       |
-| `OTEL_TRACES_SAMPLER`         | `parentbased_traceidratio`                             | Respecte la décision du service appelant                                    |
-| `OTEL_TRACES_SAMPLER_ARG`     | `1.0` en local, `0.1` pendant le test de charge        | Part des traces conservées                                                  |
+| Variable | Valeur locale | Rôle |
+|---|---|---|
+| `OTEL_SERVICE_NAME` | Nom du module en kebab-case, par exemple `reservation` | Identifie le service dans Grafana |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://observabilite:4317` | Adresse du collecteur (voir la [vue de déploiement](07-vue-deploiement.md)) |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | Protocole d'envoi |
+| `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment.name=local` | Distingue local, CI et test de charge |
+| `OTEL_TRACES_SAMPLER` | `parentbased_traceidratio` | Respecte la décision du service appelant |
+| `OTEL_TRACES_SAMPLER_ARG` | `1.0` en local, `0.1` pendant le test de charge | Part des traces conservées |
 
 L'échantillonnage à 10 % pendant le test de charge évite de saturer le conteneur d'observabilité avec 50 000 acheteurs virtuels. Les métriques, elles, ne sont pas échantillonnées : les SLO restent exacts.
 
@@ -70,14 +70,14 @@ Tous les événements ont la même enveloppe JSON, inspirée de CloudEvents :
 }
 ```
 
-| Champ     | Contenu                                                        |
-|-----------|----------------------------------------------------------------|
-| `id`      | UUID unique de l'événement, utilisé pour éliminer les doublons |
-| `type`    | Nom de l'événement                                             |
-| `version` | Version du schéma de `data`, entier commençant à 1             |
-| `source`  | Service émetteur, identique à `OTEL_SERVICE_NAME`              |
-| `time`    | Moment du fait métier, en UTC                                  |
-| `data`    | Contenu propre à l'événement                                   |
+| Champ | Contenu |
+|---|---|
+| `id` | UUID unique de l'événement, utilisé pour éliminer les doublons |
+| `type` | Nom de l'événement |
+| `version` | Version du schéma de `data`, entier commençant à 1 |
+| `source` | Service émetteur, identique à `OTEL_SERVICE_NAME` |
+| `time` | Moment du fait métier, en UTC |
+| `data` | Contenu propre à l'événement |
 
 ### Évolution des schémas
 
@@ -87,6 +87,19 @@ Tous les événements ont la même enveloppe JSON, inspirée de CloudEvents :
 
 Ces règles sont vérifiées automatiquement par une fonction de fitness sur la compatibilité des contrats.
 
+## Configuration et conventions communes
+
+- Toute configuration passe par des variables d'environnement : le même code tourne en local, en CI et en test de charge. Les valeurs locales sont dans `docker-compose.yml`, les secrets en sortiront (dette D1).
+- Les dates et heures sont stockées et échangées en UTC, au format ISO 8601 (`2026-11-24T18:00:00.123Z`). La conversion en heure locale ne se fait qu'à l'affichage.
+- Les identifiants exposés hors d'un service sont des UUID : ils peuvent être créés sans consulter la base, et ne révèlent ni volume ni ordre.
+- Les noms de services, de topics et de métriques sont en minuscules, sans accent.
+
 ## Sécurité
 
 ## Idempotence et gestion des erreurs
+
+### Consommation des événements
+
+Un consommateur valide son offset seulement après avoir traité le message : si le service tombe entre les deux, le message est relu au redémarrage. La livraison est donc « au moins une fois », et un même événement peut arriver deux fois.
+
+Tout consommateur doit être idempotent : il garde la trace des `id` déjà traités et ignore un événement déjà vu. Traiter deux fois `PlaceReservee` ne doit ni compter deux réservations ni fausser l'analytique.
