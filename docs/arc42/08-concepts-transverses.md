@@ -45,6 +45,48 @@ L'échantillonnage à 10 % pendant le test de charge évite de saturer le conten
 
 Les tableaux de bord Grafana sont versionnés dans le dépôt et chargés au démarrage : ils survivent à la perte des données d'observabilité (dette D3 du [registre](11-risques-dette.md)).
 
+## Événements
+
+Les services échangent des événements par Redpanda ([ADR 0001](../adr/0001-broker-evenements.md)).
+
+### Nommage
+
+- Un événement décrit un fait passé, au passé, dans le langage du domaine (voir le glossaire) : `PlaceReservee`, `PaiementEchoue`.
+- Un topic par contexte, nommé `<contexte>.evenements`, par exemple `reservation.evenements`.
+- La clé du message est l'identifiant de l'agrégat concerné : tous les événements d'un même agrégat arrivent dans la même partition, donc dans l'ordre.
+
+### Enveloppe
+
+Tous les événements ont la même enveloppe JSON, inspirée de CloudEvents :
+
+```json
+{
+  "id": "0d6f3c1e-7b8a-4c51-9a3e-2f1b6d4e8c90",
+  "type": "PlaceReservee",
+  "version": 1,
+  "source": "reservation",
+  "time": "2026-11-24T18:00:00.123Z",
+  "data": { }
+}
+```
+
+| Champ     | Contenu                                                        |
+|-----------|----------------------------------------------------------------|
+| `id`      | UUID unique de l'événement, utilisé pour éliminer les doublons |
+| `type`    | Nom de l'événement                                             |
+| `version` | Version du schéma de `data`, entier commençant à 1             |
+| `source`  | Service émetteur, identique à `OTEL_SERVICE_NAME`              |
+| `time`    | Moment du fait métier, en UTC                                  |
+| `data`    | Contenu propre à l'événement                                   |
+
+### Évolution des schémas
+
+- Un schéma n'évolue qu'en ajoutant des champs optionnels : les consommateurs existants continuent de fonctionner.
+- Un consommateur ignore les champs qu'il ne connaît pas.
+- Supprimer, renommer ou changer le type d'un champ est un changement incompatible : il passe par une nouvelle `version`, et l'ancienne reste publiée tant qu'un consommateur l'utilise.
+
+Ces règles sont vérifiées automatiquement par une fonction de fitness sur la compatibilité des contrats.
+
 ## Sécurité
 
 ## Idempotence et gestion des erreurs
