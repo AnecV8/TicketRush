@@ -46,3 +46,45 @@ Priorité notée (Importance pour le métier, Difficulté technique), chacune Ha
 | Q9  | Disponibilité | Le service d'analytique redémarre après une panne                               | Il rattrape son retard depuis Redpanda, compteurs identiques à ceux de la réservation                                            | (M,M)    | Comparaison après redémarrage                  |
 | Q10 | Modifiabilité | Un nouveau consommateur d'événements est ajouté (par exemple des notifications) | Aucune modification des services producteurs                                                                                     | (M,M)    | Fonction de fitness sur les dépendances        |
 | Q11 | Déployabilité | Un membre lance le projet sur un poste neuf                                     | Tous les services prêts en moins de 5 min avec une seule commande, hors téléchargement des images                                | (M,B)    | Job « Infrastructure » de la CI                |
+
+## Détail des scénarios moteurs
+
+### Q1 — Zéro survente
+- **Source** : 50 000 acheteurs virtuels (k6)
+- **Stimulus** : demandes de réservation simultanées sur les mêmes places
+- **Artefact** : service de réservation et sa base de données
+- **Environnement** : ouverture de la vente, charge maximale
+- **Réponse** : chaque place est attribuée au plus une fois ; les demandes perdantes reçoivent un refus explicite
+- **Mesure** : 0 place attribuée deux fois, billets vendus ≤ 5 000
+
+### Q2 — Latence de réservation
+- **Source** : acheteurs admis par la file d'attente
+- **Stimulus** : demande de réservation d'une place
+- **Artefact** : passerelle et service de réservation
+- **Environnement** : pic de la mise en vente
+- **Réponse** : la place est réservée temporairement ou refusée
+- **Mesure** : p95 < 1 s, moins de 1 % d'erreurs serveur
+
+### Q3 — Panne du prestataire de paiement
+- **Source** : prestataire de paiement simulé
+- **Stimulus** : erreurs ou absence de réponse pendant la vente
+- **Artefact** : saga de réservation et de paiement
+- **Environnement** : vente en cours, charge normale à forte
+- **Réponse** : les paiements en échec déclenchent la compensation ; les places réservées sont libérées à l'expiration ; la file et le catalogue continuent de fonctionner
+- **Mesure** : 0 place perdue, 0 place vendue deux fois
+
+### Q6 — Fraîcheur de l'analytique
+- **Source** : service de réservation
+- **Stimulus** : confirmation d'une vente
+- **Artefact** : flux d'événements et service d'analytique
+- **Environnement** : pic de la mise en vente
+- **Réponse** : la vente est comptée et affichée sur le tableau de bord de l'organisateur
+- **Mesure** : délai entre la confirmation et l'affichage < 5 s (p95)
+
+### Q7 — Panne d'une instance
+- **Source** : comité, pendant la soutenance
+- **Stimulus** : arrêt brutal d'une instance du service de réservation
+- **Artefact** : service de réservation
+- **Environnement** : vente en cours
+- **Réponse** : le trafic bascule sur les instances restantes ; les réservations en cours sont reprises ou expirent proprement
+- **Mesure** : la vente reprend en moins de 30 s, aucune réservation confirmée perdue
