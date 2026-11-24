@@ -54,3 +54,16 @@ Keycloak est publié sur le port 8180 pour laisser le port 8080 libre aux servic
 La CI (GitHub Actions, `.github/workflows/ci.yml`) tourne sur un runner `ubuntu-latest` et démarre uniquement PostgreSQL, Redis et Redpanda. Elle vérifie qu'ils passent `healthy` et que Redpanda annonce bien `localhost:19092` à l'extérieur, puis supprime les conteneurs et les volumes.
 
 Keycloak et l'observabilité ne sont pas démarrés en CI : images lourdes, pas de healthcheck, et aucun service n'en dépend encore (dette D5).
+
+## 7.5 Cible de production (hypothèse, non déployée)
+
+Cette cible sert de référence pour l'analyse des compromis. Chaque écart avec l'environnement local correspond à une dette du [registre](11-risques-dette.md).
+
+| Élément              | Local                              | Cible                                                           | Dette |
+|----------------------|------------------------------------|-----------------------------------------------------------------|-------|
+| Secrets              | En clair dans `docker-compose.yml` | Gestionnaire de secrets, injectés au démarrage                  | D1    |
+| Keycloak             | Mode `start-dev`, base H2          | Mode production, base PostgreSQL, realm importé depuis le dépôt | D2    |
+| Observabilité        | Image tout-en-un sans persistance  | Composants séparés avec stockage durable                        | D3    |
+| Redpanda             | 1 nœud, sans réplication           | 3 nœuds, facteur de réplication 3                               | D4    |
+| PostgreSQL           | 1 instance                         | Instance principale et réplique en lecture                      | —     |
+| Services applicatifs | 1 conteneur chacun                 | Plusieurs instances sans état derrière la passerelle            | —     |
