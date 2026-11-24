@@ -1,7 +1,9 @@
 # ADR 0002 — OpenTelemetry et l'image grafana/otel-lgtm pour l'observabilité
 
 Statut : Proposé
+
 Date : 2026-11-24
+
 Scénario(s) de qualité concerné(s) : Q7, Q8
 
 ## Contexte
@@ -21,9 +23,9 @@ Les tableaux de bord sont versionnés dans le dépôt et chargés au démarrage.
 - Service SaaS (Datadog, Grafana Cloud) : compte et coût, dépendance au réseau pendant la soutenance, et données envoyées hors du poste.
 
 ## Conséquences
-+ Une seule ligne dans Docker Compose pour les trois signaux, corrélés dans Grafana (d'une trace à ses journaux).
-+ OTLP est un standard : changer de backend ne touche pas au code des services.
-+ Si l'observabilité tombe, la vente continue : c'est un composant hors du chemin critique.
-  − Image conçue pour le développement : pas de persistance configurée ici, les données disparaissent au redémarrage. D'où les tableaux de bord dans le dépôt.
-  − Un seul conteneur, sans mise à l'échelle : en production, on séparerait les composants (voir la vue de déploiement).
-  − À 50 000 acheteurs virtuels, garder toutes les traces surchargerait le conteneur : il faudra échantillonner les traces pendant le test de charge.
+- **+** Une seule ligne dans Docker Compose pour les trois signaux, corrélés dans Grafana (d'une trace à ses journaux).
+- **+** OTLP est un standard : changer de backend ne touche pas au code des services.
+- **+** Si l'observabilité tombe, la vente continue : c'est un composant hors du chemin critique.
+- **-** Image conçue pour le développement : pas de persistance configurée ici, les données disparaissent au redémarrage. D'où les tableaux de bord dans le dépôt.
+- **-** Un seul conteneur, sans mise à l'échelle : en production, on séparerait les composants (voir la vue de déploiement).
+- **-** À 50 000 acheteurs virtuels, garder toutes les traces surchargerait le conteneur : il faudra échantillonner les traces pendant le test de charge.
